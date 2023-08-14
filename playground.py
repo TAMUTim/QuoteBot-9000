@@ -3,6 +3,7 @@
 
 from dotenv import load_dotenv
 from twilio.rest import Client
+from email import utils
 import datetime
 import os
 import openai
@@ -26,6 +27,7 @@ MY_PHONE = "+18329517889"
 TWILIO_NUMBER = "+18449693712"
 
 TWILIO_RETRY_TIME = 5
+FIRST_ELEMENT = 0
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 LINKEDIN_SITE = 'https://www.linkedin.com'
@@ -51,14 +53,20 @@ def post_to_linkedin(contents):
 
 
 def verify_response():
-    history = twilio_client.messages.list(to=TWILIO_NUMBER, from_=MY_PHONE)
-    if not history:
+    received_history = twilio_client.messages.list(to=TWILIO_NUMBER, from_=MY_PHONE)
+    sent_history = twilio_client.messages.list(to=MY_PHONE, from_=TWILIO_NUMBER)
+
+    if not received_history:
         time.sleep(TWILIO_RETRY_TIME)
         return verify_response()
 
-    response = history[0]
-    if response.date_sent.date() == datetime.datetime.utcnow().date():
-        if response.body.lower() == "y" or response.body.lower() == "yes":
+    latest_message_from_tim = received_history[FIRST_ELEMENT]
+    latest_message_from_twilio = sent_history[FIRST_ELEMENT]
+    tim_time_sent = latest_message_from_tim.date_sent
+    twilio_time_sent = latest_message_from_twilio.date_sent
+
+    if twilio_time_sent <= tim_time_sent:
+        if latest_message_from_tim.body.lower() == "y" or latest_message_from_tim.body.lower() == "yes":
             return True
         else:
             return False
@@ -103,8 +111,10 @@ def get_valid_quote():
 
 def main():
     # post_to_linkedin(get_valid_quote())
-    # want to try out selenium
-    post_to_linkedin("go big mode!")
+    # want to try out selenium'
+    quote = get_valid_quote()
+    print("posting to linkedin now this: {}".format(quote))
+    # post_to_linkedin("go big mode!")
 
 
 if __name__ == "__main__":
