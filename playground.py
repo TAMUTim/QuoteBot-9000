@@ -1,5 +1,6 @@
 # Alright this is just to test out some of the functionality of GPT / TWILIO
 # First check out OpenAI / ChatGPT
+import string
 
 from dotenv import load_dotenv
 from twilio.rest import Client
@@ -11,6 +12,7 @@ import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException
 
 load_dotenv()
 
@@ -34,22 +36,32 @@ LINKEDIN_SITE = 'https://www.linkedin.com'
 
 
 def post_to_linkedin(contents):
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(options=options)
+    # driver = webdriver.Chrome()
     driver.get(LINKEDIN_SITE)
     time.sleep(5)
 
-    driver.find_element(By.XPATH, '//*[@id="session_key"]').send_keys(linkedin_user)
-    time.sleep(1)
-    driver.find_element(By.XPATH, '//*[@id="session_password"]').send_keys(linkedin_pass)
-    time.sleep(1)
-    driver.find_element(By.CLASS_NAME, 'sign-in-form__submit-btn--full-width').click()
-    time.sleep(5)
-    driver.find_element(By.CLASS_NAME, 'share-box-feed-entry__trigger').click()
-    time.sleep(1)
-    driver.find_element(By.CLASS_NAME, 'ql-editor.ql-blank').send_keys(contents)
-    time.sleep(1)
-    driver.find_element(By.CLASS_NAME, 'share-actions__primary-action').click()
-    time.sleep(20)
+    try:
+        driver.find_element(By.XPATH, '//*[@id="session_key"]').send_keys(linkedin_user)
+        time.sleep(1)
+        driver.find_element(By.XPATH, '//*[@id="session_password"]').send_keys(linkedin_pass)
+        time.sleep(1)
+        driver.find_element(By.CLASS_NAME, 'sign-in-form__submit-btn--full-width').click()
+        time.sleep(5)
+        driver.find_element(By.CLASS_NAME, 'share-box-feed-entry__trigger').click()
+        time.sleep(1)
+        driver.find_element(By.CLASS_NAME, 'ql-editor.ql-blank').send_keys(contents)
+        time.sleep(10)
+        driver.find_element(By.CLASS_NAME, 'share-actions__primary-action').click()
+        time.sleep(5)
+    except NoSuchElementException as err:
+        print("Issue finding an element, please try again")
+    except ElementClickInterceptedException as err:
+        print("Click was intercepted, contact Tim for further diagnoses")
+    else:
+        return
 
 
 def verify_response():
@@ -69,8 +81,10 @@ def verify_response():
         if latest_message_from_tim.body.lower() == "y" or latest_message_from_tim.body.lower() == "yes":
             return True
         else:
+            print("Quote not good, exiting verification process")
             return False
     else:
+        print("No response yet, waiting for input")
         time.sleep(TWILIO_RETRY_TIME)
         return verify_response()
 
@@ -83,8 +97,8 @@ def get_valid_quote():
         messages=query
     )
 
-    reply = chat.choices[0].message.content
-    quote_prompt = "Generate a single sentence, simple quote about {} in 10 words or less".format(reply)
+    reply = chat.choices[FIRST_ELEMENT].message.content
+    quote_prompt = "Generate a single sentence, simple quote with about {} in 10 words or less".format(reply)
     quote_query = [{"role": "user", "content": quote_prompt}]
 
     quote_chat = openai.ChatCompletion.create(
@@ -92,9 +106,20 @@ def get_valid_quote():
         messages=quote_query
     )
 
-    end_quote = quote_chat.choices[0].message.content
+    end_quote = quote_chat.choices[FIRST_ELEMENT].message.content.translate(str.maketrans('', '', string.punctuation))
 
-    linkedin = "Wow! {}".format(end_quote[1:-1])
+    sting_prompt = "Generate 2 words relating to {} with no punctuation".format(reply)
+    sting_query = [{"role": "user", "content": sting_prompt}]
+
+    sting_chat = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=sting_query
+    )
+
+    sting_result = sting_chat.choices[FIRST_ELEMENT].message.content.lower().translate(str.maketrans('', '', string.punctuation))
+
+    linkedin = "Wow! {} - {}!".format(end_quote, sting_result)
+    print(linkedin)
 
     message = twilio_client.messages.create(
         to=MY_PHONE,
@@ -104,17 +129,17 @@ def get_valid_quote():
     valid = verify_response()
 
     if valid:
+        print("Good quote, posting to LinkedIn!")
         return linkedin
     else:
+        print("Bad quote, regenerating!")
         return get_valid_quote()
 
 
 def main():
-    # post_to_linkedin(get_valid_quote())
-    # want to try out selenium'
     quote = get_valid_quote()
     print("posting to linkedin now this: {}".format(quote))
-    # post_to_linkedin("go big mode!")
+    post_to_linkedin(quote)
 
 
 if __name__ == "__main__":
