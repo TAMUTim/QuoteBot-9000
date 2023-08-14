@@ -1,18 +1,14 @@
-# Alright this is just to test out some of the functionality of GPT / TWILIO
-# First check out OpenAI / ChatGPT
-import string
-
 from dotenv import load_dotenv
 from twilio.rest import Client
-from email import utils
-import datetime
-import os
-import openai
-import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException
+
+import string
+import os
+import openai
+import time
 
 load_dotenv()
 
