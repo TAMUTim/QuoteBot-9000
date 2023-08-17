@@ -5,4 +5,6 @@ Automatic script to generate a "good" quote, verify its goodness, and publish to
 ## Technologies:
  - ChatGPT / OpenAI
  - Twilio
- - LinkedIn API
+ - Selenium
+ - AWS Lambda
+ - Serverless
