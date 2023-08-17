@@ -21,8 +21,8 @@ twilio_sid = os.environ.get("TWILIO_SID")
 twilio_auth = os.environ.get("TWILIO_AUTH")
 twilio_client = Client(twilio_sid, twilio_auth)
 
-MY_PHONE = "+18329517889"
-TWILIO_NUMBER = "+18449693712"
+MY_PHONE = "whatsapp:+18329517889"
+TWILIO_NUMBER = "whatsapp:+14155238886"
 
 TWILIO_RETRY_TIME = 5
 FIRST_ELEMENT = 0
@@ -135,7 +135,7 @@ def get_valid_quote():
 def main():
     quote = get_valid_quote()
     print("posting to linkedin now this: {}".format(quote))
-    post_to_linkedin(quote)
+    # post_to_linkedin(quote)
 
 
 if __name__ == "__main__":

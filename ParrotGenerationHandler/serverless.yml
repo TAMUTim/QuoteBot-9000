@@ -1,0 +1,30 @@
+service: generation
+
+provider:
+  name: aws
+  runtime: python3.11
+  environment:
+    TWILIO_SID: ${env:TWILIO_SID}
+    TWILIO_AUTH: ${env:TWILIO_AUTH}
+    OPENAI_KEY: ${env:OPENAI_KEY}
+    LINKEDIN_USER: ${env:LINKEDIN_USER}
+    LINKEDIN_PASS: ${env:LINKEDIN_PASS}
+    TWILIO_NUM: ${env:TWILIO_NUM}
+    PHONE_NUM: ${env:PHONE_NUM}
+
+plugins:
+ - serverless-python-requirements
+
+functions:
+  generation:
+    handler: generation.generation_handler
+
+custom:
+  pythonRequirements:
+    pythonBin: python
+
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
+
